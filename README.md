@@ -7,6 +7,8 @@ For some reason sometimes when you deposit items in the GB when there are alread
 
 I'm sure Zenimax will fix this issue before long, but this was irritating me and it seemed like a good way to try out the ESO API (FYI it kinda sucks).
 
+**Note: This is not tested very well, but it kinda works for me. If it causes your cool purplez to evaporate, don't blame me.**
+
 Usage
 -----
 
@@ -17,6 +19,11 @@ Usage
 3. Re-stack with the command:
 
 		/unfuck
+
+Caveats
+-------
+
+If you already have some quantity of an item that is getting re-stacked in your inventory it will end up in the GB with the rest.
 
 Todo
 ----
