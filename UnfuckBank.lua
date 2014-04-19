@@ -1,11 +1,16 @@
 UnfuckBank = {}
 UnfuckBank.name = "UnfuckBank"
 
-wait_slots = {}
-done_slots = 0
 data = {}
 ids = {}
-index = 1
+id_index = 1
+
+withdraw_slots = {}
+ws_index = 1
+wait_slot_id = nil
+
+deposit_slots = {}
+ds_index = 1
 
 function OnOpenGuildBank()
     d("Opening guild bank")
@@ -21,46 +26,86 @@ function Unfuck(arg)
     end
 end
 
-function Test(arg)
-    d("test")
-    found = FindItemInBag(1937545910, BAG_BACKPACK)
-    d(found)
-    d("done")
-end
-
 function OnGuildBankItemRemoved(bagId, slotId, isNewItem, itemSoundCategory, updateReason)
     local found
 
-    -- Remove the slot that was emptied from the list of slots we're waiting for
-    for i,v in ipairs(wait_slots) do
-        if v == slotId then
-            -- d("removing slot " .. slotId .. " from wait_slots")
-            table.remove(wait_slots, i)
+    -- If this is the ID we were waiting for
+    if wait_slot_id == slotId then
+        if ws_index <= #withdraw_slots then
+            -- Haven't finished withdrawing all the slots for this item yet
+            NextWithdrawal()
+        else
+            -- Finished withdrawing all the slots for this item, find the item slot(s) in backpack
+            deposit_slots = FindItemInBag(ids[id_index], BAG_BACKPACK)
+
+            -- Deposit the first stack in the GB
+            NextDeposit()
+
+            -- Wait for notification to call OnGuildBankItemAdded() before depositing the next one
         end
     end
+end
 
-    -- If all the withdrawals are finished
-    if #wait_slots == 0 then
-        -- Find the item slot(s) in backpack
-        found = FindItemInBag(ids[index], BAG_BACKPACK)
+function OnGuildBankItemAdded(bagId, slotId, isNewItem, itemSoundCategory, updateReason)
+    local found
 
-        -- Deposit the stack(s) in the GB
-        for i,slotId in ipairs(found) do
-            d("Depositing " .. v["name"] .. " from backpack slot ID " .. slotId)
-            TransferToGuildBank(BAG_BACKPACK, slotId)
-        end
+    if ds_index <= #deposit_slots then
+        -- Haven't finished depositing all the slots for this item yet
+        NextDeposit()
+    else
+        -- Finished depositing all the slots for this item
+        deposit_slots = FindItemInBag(ids[id_index], BAG_BACKPACK)
+        ds_index = 1
 
         -- Increment the index into the IDs array
-        index = index + 1
+        id_index = id_index + 1
 
         -- Do the next restack
-        if index < #ids then
+        if id_index < #ids then
             NextRestack()
         else
             d("Finished restacking guild bank")
             EVENT_MANAGER:UnregisterForEvent(UnfuckBank.name, EVENT_GUILD_BANK_ITEM_REMOVED, OnGuildBankItemRemoved)
+            EVENT_MANAGER:UnregisterForEvent(UnfuckBank.name, EVENT_GUILD_BANK_ITEM_ADDED, OnGuildBankItemAdded)
         end
     end
+end
+
+
+function NextRestack()
+    id = ids[id_index]
+    v = data[id]
+    -- d("restacking id " .. id)
+
+    -- Set the global with the slot IDs we're withdrawing
+    withdraw_slots = v["slotIds"]
+    ws_index = 1
+
+    -- Withdraw the first instance of this item in the GB
+    d("Withdrawing " .. v["name"] .. " (" .. id .. ")")
+    NextWithdrawal()
+
+    -- Now we wait for a OnGuildBankItemRemoved() callback to tell us that the withdrawal has finished
+end
+
+
+function NextWithdrawal()
+    wait_slot_id = withdraw_slots[ws_index]
+
+    d("Withdrawing from slot ID " .. wait_slot_id)
+    TransferFromGuildBank(wait_slot_id)
+
+    ws_index = ws_index + 1
+end
+
+
+function NextDeposit()
+    deposit_slot_id = deposit_slots[ds_index]
+
+    d("Depositing backpack slot ID " .. deposit_slot_id)
+    TransferToGuildBank(BAG_BACKPACK, deposit_slot_id)
+
+    ds_index = ds_index + 1
 end
 
 function UnfuckGuildBank()
@@ -70,6 +115,7 @@ function UnfuckGuildBank()
     data = InspectGuildBank()
 
     -- Get a list of ids that need restacking
+    ids = {}
     for k,v in pairs(data) do
         if v["restack"] == 1 then
             table.insert(ids, k)
@@ -79,29 +125,13 @@ function UnfuckGuildBank()
     if #ids > 0 then
         -- Register for item notifications
         EVENT_MANAGER:RegisterForEvent(UnfuckBank.name, EVENT_GUILD_BANK_ITEM_REMOVED, OnGuildBankItemRemoved)
+        EVENT_MANAGER:RegisterForEvent(UnfuckBank.name, EVENT_GUILD_BANK_ITEM_ADDED, OnGuildBankItemAdded)
 
         -- Do the first restack
         NextRestack()
     else
         d("Guild bank seems to be stacked OK")
     end
-end
-
-function NextRestack()
-    id = ids[index]
-    v = data[id]
-    -- d("restacking id " .. id)
-
-    -- Set the global with the slot IDs we're waiting to empty
-    wait_slots = v["slotIds"]
-
-    -- Withdraw all the instances of this item in the GB
-    for i,slotId in ipairs(v["slotIds"]) do
-        d("Withdrawing " .. v["name"] .. " (" .. id .. ") in guild bank slot ID " .. slotId)
-        TransferFromGuildBank(slotId)
-    end
-
-    -- Now we wait for callbacks to tell us that the withdrawals have finished
 end
 
 function InspectGuildBank()
@@ -177,7 +207,6 @@ function UnfuckBank.OnAddOnLoaded(eventCode, addOnName)
 
     -- Register slash command
     SLASH_COMMANDS["/unfuck"] = Unfuck
-    SLASH_COMMANDS["/test"] = Test
 
     -- Use this to load in our saved variables
     UnfuckBank.vars = ZO_SavedVars:NewAccountWide("UnfuckBank_SavedVariables", 1, nil, UnfuckBank.defaults)
