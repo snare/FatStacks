@@ -1,6 +1,8 @@
 UnfuckBank
 ==========
 
+**This doesn't work since patch v1.0.4. Items are no longer auto-stacked when moved from the guild bank to your backpack, and I can't find any way with the API to stack items in your backpack.**
+
 This is a hacky Elder Scrolls Online addon to restack items in the Guild Bank.
 
 For some reason sometimes when you deposit items in the GB when there are already items the same there that could be stacked together it uses a new GB slot. This addon finds items in the GB that are taking up more slots than necessary, withdraws them into your backpack where they are automatically re-stacked, then deposits them back in the GB.
