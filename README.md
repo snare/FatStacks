@@ -12,7 +12,7 @@ Notes
 
 1. This is not tested very well, but it mostly works for me. If it causes your cool purplez to evaporate, don't blame me.
 
-2. If it hangs mid re-stack or you want to bail out use /unfuckreset
+2. If it hangs mid re-stack or you want to bail out use /unfuck reset
 
 3. There appears to be a timing issue, I may have to rework the restacking to be asynchronous the same way the withdrawal and depositing works.
 
@@ -26,6 +26,10 @@ Usage
 3. Re-stack with the command:
 
 		/unfuck
+
+4. Just get info about what's stacked poorly with:
+
+		/unfuck info
 
 Caveats
 -------

@@ -15,12 +15,14 @@ ds_index = 1
 function Unfuck(arg)
     if arg == "" or arg == "gb" then
         UnfuckGuildBank()
+    elseif arg == "reset" then
+        d("Resetting")
+        EVENT_MANAGER:UnregisterForEvent(UnfuckBank.name, EVENT_GUILD_BANK_ITEM_REMOVED, OnGuildBankItemRemoved)
+        EVENT_MANAGER:UnregisterForEvent(UnfuckBank.name, EVENT_GUILD_BANK_ITEM_ADDED, OnGuildBankItemAdded)
+        data = {}
+    elseif arg == "info" then
+        InspectGuildBank()
     end
-end
-
-function UnfuckReset(arg)
-    EVENT_MANAGER:UnregisterForEvent(UnfuckBank.name, EVENT_GUILD_BANK_ITEM_REMOVED, OnGuildBankItemRemoved)
-    EVENT_MANAGER:UnregisterForEvent(UnfuckBank.name, EVENT_GUILD_BANK_ITEM_ADDED, OnGuildBankItemAdded)
 end
 
 function OnGuildBankItemRemoved(bagId, slotId, isNewItem, itemSoundCategory, updateReason)
@@ -280,7 +282,7 @@ function UnfuckBank.OnAddOnLoaded(eventCode, addOnName)
 
     -- Register slash command
     SLASH_COMMANDS["/unfuck"] = Unfuck
-    SLASH_COMMANDS["/unfuckreset"] = UnfuckReset
+    SLASH_COMMANDS["/unf"] = Unfuck
 end
 
 
