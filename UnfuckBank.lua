@@ -12,14 +12,6 @@ wait_slot_id = nil
 deposit_slots = {}
 ds_index = 1
 
-function OnOpenGuildBank()
-    d("Opening guild bank")
-end
-
-function OnOpenBank()
-    d("Opening bank")
-end
-
 function Unfuck(arg)
     if arg == "" or arg == "gb" then
         UnfuckGuildBank()
@@ -36,7 +28,10 @@ function OnGuildBankItemRemoved(bagId, slotId, isNewItem, itemSoundCategory, upd
             NextWithdrawal()
         else
             -- Finished withdrawing all the slots for this item, find the item slot(s) in backpack
-            deposit_slots = FindItemInBag(ids[id_index], BAG_BACKPACK)
+            slots = FindItemInBag(ids[id_index], BAG_BACKPACK)
+
+            -- Stack the items we found
+            deposit_slots = StackItems(BAG_BACKPACK, slots)
 
             -- Deposit the first stack in the GB
             NextDeposit()
@@ -61,7 +56,7 @@ function OnGuildBankItemAdded(bagId, slotId, isNewItem, itemSoundCategory, updat
         id_index = id_index + 1
 
         -- Do the next restack
-        if id_index < #ids then
+        if id_index <= #ids then
             NextRestack()
         else
             d("Finished restacking guild bank")
@@ -71,6 +66,62 @@ function OnGuildBankItemAdded(bagId, slotId, isNewItem, itemSoundCategory, updat
     end
 end
 
+function StackItems(bagId, slotIds)
+    -- Make sure they're all the same item type
+    id = nil
+    for i,slotId in ipairs(slotIds) do
+        if id == nil then
+            id = GetItemInstanceId(bagId, slotId)
+        elseif id ~= GetItemInstanceId(bagId, slotId) then
+            return slotIds
+        end
+    end
+
+    -- Stack
+    room = 0
+    newSlots = {}
+    for i,slotId in ipairs(slotIds) do
+        -- Get stack size
+        stack, maxStack = GetSlotStackSize(bagId, slotId)
+
+        while stack > 0 do
+            -- See how much room we have
+            if room == 0 then
+                -- Out of room, find a new slot
+                target = FindFirstEmptySlotInBag(bagId)
+                -- d("adding target: " .. target)
+                table.insert(newSlots, target)
+                room = maxStack
+            end
+
+            -- Calculate how many to move
+            if stack < room then
+                -- Enough room for the remaining stack, move it all
+                move = stack
+                room = room - move
+            else
+                -- Not enough room for the remaining stack, fill the remainder
+                move = room
+                room = 0
+            end
+
+            -- Move it
+            -- d("moving " .. move .. " from slot " .. slotId .. " to " .. target .. " - room: " .. room)
+            ClearCursor()
+            res = CallSecureProtected("PickupInventoryItem", bagId, slotId, move)
+            if (res) then
+                res = CallSecureProtected("PlaceInInventory", bagId, target)
+            end
+            ClearCursor()
+
+            -- Subtract how much we moved from the remaining stack
+            stack = stack - move
+        end
+    end
+
+    -- Return the new slot IDs containing the stacked items
+    return newSlots
+end
 
 function NextRestack()
     id = ids[id_index]
@@ -88,7 +139,6 @@ function NextRestack()
     -- Now we wait for a OnGuildBankItemRemoved() callback to tell us that the withdrawal has finished
 end
 
-
 function NextWithdrawal()
     wait_slot_id = withdraw_slots[ws_index]
 
@@ -97,7 +147,6 @@ function NextWithdrawal()
 
     ws_index = ws_index + 1
 end
-
 
 function NextDeposit()
     deposit_slot_id = deposit_slots[ds_index]
@@ -207,13 +256,6 @@ function UnfuckBank.OnAddOnLoaded(eventCode, addOnName)
 
     -- Register slash command
     SLASH_COMMANDS["/unfuck"] = Unfuck
-
-    -- Use this to load in our saved variables
-    UnfuckBank.vars = ZO_SavedVars:NewAccountWide("UnfuckBank_SavedVariables", 1, nil, UnfuckBank.defaults)
-
-    -- Register for bank events
-    EVENT_MANAGER:RegisterForEvent(UnfuckBank.name, EVENT_OPEN_GUILD_BANK, OnOpenGuildBank)
-    EVENT_MANAGER:RegisterForEvent(UnfuckBank.name, EVENT_OPEN_BANK, OnOpenBank)
 end
 
 
