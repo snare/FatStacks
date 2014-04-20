@@ -18,6 +18,11 @@ function Unfuck(arg)
     end
 end
 
+function UnfuckReset(arg)
+    EVENT_MANAGER:UnregisterForEvent(UnfuckBank.name, EVENT_GUILD_BANK_ITEM_REMOVED, OnGuildBankItemRemoved)
+    EVENT_MANAGER:UnregisterForEvent(UnfuckBank.name, EVENT_GUILD_BANK_ITEM_ADDED, OnGuildBankItemAdded)
+end
+
 function OnGuildBankItemRemoved(bagId, slotId, isNewItem, itemSoundCategory, updateReason)
     local found
 
@@ -78,27 +83,32 @@ function StackItems(bagId, slotIds)
     end
 
     -- Stack
-    room = 0
-    newSlots = {}
-    for i,slotId in ipairs(slotIds) do
-        -- Get stack size
-        stack, maxStack = GetSlotStackSize(bagId, slotId)
+    done = false
+    targetIndex = 1
+    sourceIndex = #slotIds
+    d("targetIndex: " .. targetIndex .. " sourceIndex: " .. sourceIndex)
+    while targetIndex < sourceIndex do
+        target = slotIds[targetIndex]
 
-        while stack > 0 do
-            -- See how much room we have
-            if room == 0 then
-                -- Out of room, find a new slot
-                target = FindFirstEmptySlotInBag(bagId)
-                -- d("adding target: " .. target)
-                table.insert(newSlots, target)
-                room = maxStack
-            end
+        -- Check how much room the target slot has
+        stack, maxStack = GetSlotStackSize(bagId, target)
+        room = maxStack - stack
+        d("target 1stack: " .. stack .. " room: " .. room)
+
+        -- While there's still room
+        while room > 0 and targetIndex < sourceIndex do
+            source = slotIds[sourceIndex]
 
             -- Calculate how many to move
-            if stack < room then
+            stack, maxStack = GetSlotStackSize(bagId, source)
+            if stack <= room then
+                d("moving remaaining")
                 -- Enough room for the remaining stack, move it all
                 move = stack
                 room = room - move
+
+                -- Move back from the end of the array one slot
+                sourceIndex = sourceIndex - 1
             else
                 -- Not enough room for the remaining stack, fill the remainder
                 move = room
@@ -106,21 +116,33 @@ function StackItems(bagId, slotIds)
             end
 
             -- Move it
-            -- d("moving " .. move .. " from slot " .. slotId .. " to " .. target .. " - room: " .. room)
+            d("moving " .. move .. " from slot " .. source .. " to " .. target .. " - room: " .. room)
             ClearCursor()
-            res = CallSecureProtected("PickupInventoryItem", bagId, slotId, move)
+            res = CallSecureProtected("PickupInventoryItem", bagId, source, move)
             if (res) then
                 res = CallSecureProtected("PlaceInInventory", bagId, target)
             end
             ClearCursor()
 
-            -- Subtract how much we moved from the remaining stack
-            stack = stack - move
+            for i=1,10000,1 do
+                
+            end
         end
+
+        -- Out of room in this slot, move to the next one
+        targetIndex = targetIndex + 1
+        d("out of room. target index now " .. targetIndex)
     end
 
-    -- Return the new slot IDs containing the stacked items
-    return newSlots
+    -- Work out which slots still have items
+    newSlotIds = {}
+    for i=1,sourceIndex,1 do
+        table.insert(newSlotIds, slotIds[i])
+    end
+    d("new slot ids: ")
+    d(newSlotIds)
+
+    return newSlotIds
 end
 
 function NextRestack()
@@ -161,10 +183,12 @@ function UnfuckGuildBank()
     d("Unfucking guild bank")
 
     -- Inspect the items in the GB
+    data = {}
     data = InspectGuildBank()
 
     -- Get a list of ids that need restacking
     ids = {}
+    id_index = 1
     for k,v in pairs(data) do
         if v["restack"] == 1 then
             table.insert(ids, k)
@@ -256,6 +280,7 @@ function UnfuckBank.OnAddOnLoaded(eventCode, addOnName)
 
     -- Register slash command
     SLASH_COMMANDS["/unfuck"] = Unfuck
+    SLASH_COMMANDS["/unfuckreset"] = UnfuckReset
 end
 
 
