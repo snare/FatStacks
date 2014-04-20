@@ -7,7 +7,14 @@ For some reason sometimes when you deposit items in the GB when there are alread
 
 I'm sure Zenimax will fix this issue before long, but this was irritating me and it seemed like a good way to try out the ESO API (FYI it kinda sucks).
 
-**Note: This is not tested very well, but it mostly works for me. If it causes your cool purplez to evaporate, don't blame me. If it hangs mid re-stack before saying it's complete you should reload UI before using the guild bank again.**
+Notes
+-----
+
+1. This is not tested very well, but it mostly works for me. If it causes your cool purplez to evaporate, don't blame me.
+
+2. If it hangs mid re-stack or you want to bail out use /unfuckreset
+
+3. There appears to be a timing issue, I may have to rework the restacking to be asynchronous the same way the withdrawal and depositing works.
 
 Usage
 -----
