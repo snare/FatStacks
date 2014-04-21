@@ -1,5 +1,5 @@
-UnfuckBank = {}
-UnfuckBank.name = "UnfuckBank"
+FatStacks = {}
+FatStacks.name = "FatStacks"
 
 data = {}
 ids = {}
@@ -12,13 +12,13 @@ wait_slot_id = nil
 deposit_slots = {}
 ds_index = 1
 
-function Unfuck(arg)
+function Main(arg)
     if arg == "" or arg == "gb" then
-        UnfuckGuildBank()
+        RestackGuildBank()
     elseif arg == "reset" then
         d("Resetting")
-        EVENT_MANAGER:UnregisterForEvent(UnfuckBank.name, EVENT_GUILD_BANK_ITEM_REMOVED, OnGuildBankItemRemoved)
-        EVENT_MANAGER:UnregisterForEvent(UnfuckBank.name, EVENT_GUILD_BANK_ITEM_ADDED, OnGuildBankItemAdded)
+        EVENT_MANAGER:UnregisterForEvent(FatStacks.name, EVENT_GUILD_BANK_ITEM_REMOVED, OnGuildBankItemRemoved)
+        EVENT_MANAGER:UnregisterForEvent(FatStacks.name, EVENT_GUILD_BANK_ITEM_ADDED, OnGuildBankItemAdded)
         data = {}
     elseif arg == "info" then
         InspectGuildBank()
@@ -67,8 +67,8 @@ function OnGuildBankItemAdded(bagId, slotId, isNewItem, itemSoundCategory, updat
             NextRestack()
         else
             d("Finished restacking guild bank")
-            EVENT_MANAGER:UnregisterForEvent(UnfuckBank.name, EVENT_GUILD_BANK_ITEM_REMOVED, OnGuildBankItemRemoved)
-            EVENT_MANAGER:UnregisterForEvent(UnfuckBank.name, EVENT_GUILD_BANK_ITEM_ADDED, OnGuildBankItemAdded)
+            EVENT_MANAGER:UnregisterForEvent(FatStacks.name, EVENT_GUILD_BANK_ITEM_REMOVED, OnGuildBankItemRemoved)
+            EVENT_MANAGER:UnregisterForEvent(FatStacks.name, EVENT_GUILD_BANK_ITEM_ADDED, OnGuildBankItemAdded)
         end
     end
 end
@@ -181,8 +181,8 @@ function NextDeposit()
     ds_index = ds_index + 1
 end
 
-function UnfuckGuildBank()
-    d("Unfucking guild bank")
+function RestackGuildBank()
+    d("Restacking guild bank")
 
     -- Inspect the items in the GB
     data = {}
@@ -199,8 +199,8 @@ function UnfuckGuildBank()
 
     if #ids > 0 then
         -- Register for item notifications
-        EVENT_MANAGER:RegisterForEvent(UnfuckBank.name, EVENT_GUILD_BANK_ITEM_REMOVED, OnGuildBankItemRemoved)
-        EVENT_MANAGER:RegisterForEvent(UnfuckBank.name, EVENT_GUILD_BANK_ITEM_ADDED, OnGuildBankItemAdded)
+        EVENT_MANAGER:RegisterForEvent(FatStacks.name, EVENT_GUILD_BANK_ITEM_REMOVED, OnGuildBankItemRemoved)
+        EVENT_MANAGER:RegisterForEvent(FatStacks.name, EVENT_GUILD_BANK_ITEM_ADDED, OnGuildBankItemAdded)
 
         -- Do the first restack
         NextRestack()
@@ -274,16 +274,15 @@ function FindItemInBag(itemId, bagId)
     return found
 end
 
-function UnfuckBank.OnAddOnLoaded(eventCode, addOnName)
+function FatStacks.OnAddOnLoaded(eventCode, addOnName)
     d("loading " .. eventCode .. " " .. addOnName)
 
     -- Only initialize our own addon
-    if (UnfuckBank.name ~= UnfuckBank.name) then return end
+    if (FatStacks.name ~= FatStacks.name) then return end
 
     -- Register slash command
-    SLASH_COMMANDS["/unfuck"] = Unfuck
-    SLASH_COMMANDS["/unf"] = Unfuck
+    SLASH_COMMANDS["/fs"] = Main
 end
 
 
-EVENT_MANAGER:RegisterForEvent(UnfuckBank.name, EVENT_ADD_ON_LOADED, UnfuckBank.OnAddOnLoaded)
+EVENT_MANAGER:RegisterForEvent(FatStacks.name, EVENT_ADD_ON_LOADED, FatStacks.OnAddOnLoaded)
