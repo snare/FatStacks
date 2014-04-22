@@ -23,13 +23,14 @@ Usage
 
 2. Open your Guild Bank
 
+4. Get info about what's stacked poorly (optional):
+
+        /fs info
+
 3. Re-stack with the command:
 
-		/fs
+		/fs restack
 
-4. Just get info about what's stacked poorly with:
-
-		/fs info
 
 Caveats
 -------
