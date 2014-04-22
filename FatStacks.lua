@@ -12,8 +12,28 @@ wait_slot_id = nil
 deposit_slots = {}
 ds_index = 1
 
+gb_open = false
+
+function OnOpenGuildBank()
+    -- d("Opening guild bank")
+    gb_open = true
+end
+
+function OnCloseGuildBank()
+    -- d("Closing guild bank")
+    gb_open = false
+end
+
 function Main(arg)
-    if arg == "" or arg == "gb" then
+    if arg == "" or arg == "help" then
+        d("----- FatStacks help -----")
+        d("/fs - this help")
+        -- d("/fs show - show main output window")
+        -- d("/fs hide - hide main output window")
+        d("/fs info - just get info about the state of the guild bank")
+        d("/fs restack - restack the guild bank")
+        d("/fs reset - reset FatStacks (use this if you get an error or if FS hangs mid-restack)")
+    elseif arg == "restack" then
         RestackGuildBank()
     elseif arg == "reset" then
         d("Resetting")
@@ -22,6 +42,8 @@ function Main(arg)
         data = {}
     elseif arg == "info" then
         InspectGuildBank()
+    else
+        d("[FatStacks] No such command: " .. arg)
     end
 end
 
@@ -88,14 +110,14 @@ function StackItems(bagId, slotIds)
     done = false
     targetIndex = 1
     sourceIndex = #slotIds
-    d("targetIndex: " .. targetIndex .. " sourceIndex: " .. sourceIndex)
+    -- d("targetIndex: " .. targetIndex .. " sourceIndex: " .. sourceIndex)
     while targetIndex < sourceIndex do
         target = slotIds[targetIndex]
 
         -- Check how much room the target slot has
         stack, maxStack = GetSlotStackSize(bagId, target)
         room = maxStack - stack
-        d("target 1stack: " .. stack .. " room: " .. room)
+        -- d("target stack: " .. stack .. " room: " .. room)
 
         -- While there's still room
         while room > 0 and targetIndex < sourceIndex do
@@ -104,7 +126,7 @@ function StackItems(bagId, slotIds)
             -- Calculate how many to move
             stack, maxStack = GetSlotStackSize(bagId, source)
             if stack <= room then
-                d("moving remaaining")
+                -- d("moving remaining")
                 -- Enough room for the remaining stack, move it all
                 move = stack
                 room = room - move
@@ -118,22 +140,18 @@ function StackItems(bagId, slotIds)
             end
 
             -- Move it
-            d("moving " .. move .. " from slot " .. source .. " to " .. target .. " - room: " .. room)
+            -- d("moving " .. move .. " from slot " .. source .. " to " .. target .. " - room: " .. room)
             ClearCursor()
             res = CallSecureProtected("PickupInventoryItem", bagId, source, move)
             if (res) then
                 res = CallSecureProtected("PlaceInInventory", bagId, target)
             end
             ClearCursor()
-
-            for i=1,10000,1 do
-                
-            end
         end
 
         -- Out of room in this slot, move to the next one
         targetIndex = targetIndex + 1
-        d("out of room. target index now " .. targetIndex)
+        -- d("out of room. target index now " .. targetIndex)
     end
 
     -- Work out which slots still have items
@@ -141,8 +159,6 @@ function StackItems(bagId, slotIds)
     for i=1,sourceIndex,1 do
         table.insert(newSlotIds, slotIds[i])
     end
-    d("new slot ids: ")
-    d(newSlotIds)
 
     return newSlotIds
 end
@@ -182,21 +198,16 @@ function NextDeposit()
 end
 
 function RestackGuildBank()
-    d("Restacking guild bank")
-
-    -- Inspect the items in the GB
-    data = {}
-    data = InspectGuildBank()
-
-    -- Get a list of ids that need restacking
-    ids = {}
-    id_index = 1
-    for k,v in pairs(data) do
-        if v["restack"] == 1 then
-            table.insert(ids, k)
-        end
+    if not gb_open then
+        d("Guild bank is not open")
+        return
     end
 
+    -- Inspect the items in the GB
+    data, ids = InspectGuildBank()
+
+    -- Start restacking
+    id_index = 1
     if #ids > 0 then
         -- Register for item notifications
         EVENT_MANAGER:RegisterForEvent(FatStacks.name, EVENT_GUILD_BANK_ITEM_REMOVED, OnGuildBankItemRemoved)
@@ -204,8 +215,6 @@ function RestackGuildBank()
 
         -- Do the first restack
         NextRestack()
-    else
-        d("Guild bank seems to be stacked OK")
     end
 end
 
@@ -213,9 +222,15 @@ function InspectGuildBank()
     local i = nil
     local count = 0
     local data = {}
+    local restack = {}
     local data_count = 0
     local slot_count = 0
     local name, maxStack, stack
+
+    if not gb_open then
+        d("Guild bank is not open")
+        return data, restack
+    end
 
     icon, slots = GetBagInfo(BAG_GUILDBANK)
 
@@ -244,18 +259,29 @@ function InspectGuildBank()
     end
 
     d("There are " .. data_count .. " unique items in " .. slot_count .. "/" .. slots .. " slots")
+    if data_count == 0 then return data, restack end
 
     -- Find items taking up too much room
-    d("The following items are taking up too many slots:")
     for k,v in pairs(data) do
-        local req = math.ceil(v["count"] / v["maxStack"])
-        if v["slots"] > req then
-            d(v["name"] .. " - " .. v["count"] .. " using " .. v["slots"] .. " slots instead of " .. req)
+        data[k]["req"] = math.ceil(v["count"] / v["maxStack"])
+        if v["slots"] > data[k]["req"] then
             data[k]["restack"] = 1
+            table.insert(restack, k)
         end
     end
 
-    return data
+    -- Report on poorly stacked items
+    if #restack > 0 then
+        d("There are " .. #restack .. " items taking up too many slots:")
+        for i,id in ipairs(restack) do
+            v = data[id]
+            d(v["name"] .. " - " .. v["count"] .. " using " .. v["slots"] .. " slots instead of " .. v["req"])
+        end
+    else
+        d("Guild bank is stacked OK")
+    end
+
+    return data, restack
 end
 
 function FindItemInBag(itemId, bagId)
@@ -276,6 +302,10 @@ end
 
 function FatStacks.OnAddOnLoaded(eventCode, addOnName)
     d("loading " .. eventCode .. " " .. addOnName)
+
+    -- Register for guild bank open and close events
+    EVENT_MANAGER:RegisterForEvent(FatStacks.name, EVENT_OPEN_GUILD_BANK, OnOpenGuildBank)
+    EVENT_MANAGER:RegisterForEvent(FatStacks.name, EVENT_CLOSE_GUILD_BANK, OnCloseGuildBank)
 
     -- Only initialize our own addon
     if (FatStacks.name ~= FatStacks.name) then return end
