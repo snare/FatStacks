@@ -78,9 +78,6 @@ function OnGuildBankItemAdded(bagId, slotId, isNewItem, itemSoundCategory, updat
         NextDeposit()
     else
         -- Finished depositing all the slots for this item
-        deposit_slots = FindItemInBag(ids[id_index], BAG_BACKPACK)
-        ds_index = 1
-
         -- Increment the index into the IDs array
         id_index = id_index + 1
 
@@ -173,7 +170,7 @@ function NextRestack()
     ws_index = 1
 
     -- Withdraw the first instance of this item in the GB
-    d("Withdrawing " .. v["name"] .. " (" .. id .. ")")
+    d("Restacking " .. v["name"] .. " (" .. id .. ")")
     NextWithdrawal()
 
     -- Now we wait for a OnGuildBankItemRemoved() callback to tell us that the withdrawal has finished
@@ -182,8 +179,12 @@ end
 function NextWithdrawal()
     wait_slot_id = withdraw_slots[ws_index]
 
-    d("Withdrawing from slot ID " .. wait_slot_id)
-    TransferFromGuildBank(wait_slot_id)
+    if wait_slot_id == nil then
+        d("Found a nil slot id - this is a bug, tell snare if you see this :(")
+    else
+        -- d("Withdrawing from slot ID " .. wait_slot_id)
+        TransferFromGuildBank(wait_slot_id)
+    end
 
     ws_index = ws_index + 1
 end
@@ -191,8 +192,12 @@ end
 function NextDeposit()
     deposit_slot_id = deposit_slots[ds_index]
 
-    d("Depositing backpack slot ID " .. deposit_slot_id)
-    TransferToGuildBank(BAG_BACKPACK, deposit_slot_id)
+    if deposit_slot_id == nil then
+        d("Found a nil slot id - this is a bug, tell snare if you see this :(")
+    else
+        -- d("Depositing backpack slot ID " .. deposit_slot_id)
+        TransferToGuildBank(BAG_BACKPACK, deposit_slot_id)
+    end
 
     ds_index = ds_index + 1
 end
@@ -289,9 +294,9 @@ function FindItemInBag(itemId, bagId)
     local found = {}
 
     for slot=0,slots,1 do
-        if GetItemInstanceId(bagId, slot) and itemId then
+        -- if GetItemInstanceId(bagId, slot) and itemId then
             -- d("slot: " .. slot .. " searching for " .. itemId .. " found " .. GetItemInstanceId(bagId, slot) .. ": " .. GetItemName(bagId, slot))
-        end
+        -- end
         if itemId == GetItemInstanceId(bagId, slot) then
             table.insert(found, slot)
         end
