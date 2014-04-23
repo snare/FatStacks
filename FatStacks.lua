@@ -48,7 +48,7 @@ function Main(arg)
 end
 
 function OnGuildBankItemRemoved(bagId, slotId, isNewItem, itemSoundCategory, updateReason)
-    local found
+    local slots
 
     -- If this is the ID we were waiting for
     if wait_slot_id == slotId then
@@ -63,6 +63,7 @@ function OnGuildBankItemRemoved(bagId, slotId, isNewItem, itemSoundCategory, upd
             deposit_slots = StackItems(BAG_BACKPACK, slots)
 
             -- Deposit the first stack in the GB
+            ds_index = 1
             NextDeposit()
 
             -- Wait for notification to call OnGuildBankItemAdded() before depositing the next one
@@ -93,8 +94,10 @@ function OnGuildBankItemAdded(bagId, slotId, isNewItem, itemSoundCategory, updat
 end
 
 function StackItems(bagId, slotIds)
+    local id
+
     -- Make sure they're all the same item type
-    id = nil
+    local id = nil
     for i,slotId in ipairs(slotIds) do
         if id == nil then
             id = GetItemInstanceId(bagId, slotId)
@@ -104,9 +107,9 @@ function StackItems(bagId, slotIds)
     end
 
     -- Stack
-    done = false
-    targetIndex = 1
-    sourceIndex = #slotIds
+    local done = false
+    local targetIndex = 1
+    local sourceIndex = #slotIds
     -- d("targetIndex: " .. targetIndex .. " sourceIndex: " .. sourceIndex)
     while targetIndex < sourceIndex do
         target = slotIds[targetIndex]
@@ -180,7 +183,7 @@ function NextWithdrawal()
     wait_slot_id = withdraw_slots[ws_index]
 
     if wait_slot_id == nil then
-        d("Found a nil slot id - this is a bug, tell snare if you see this :(")
+        d("Found a nil wait slot id - this is a bug, tell snare if you see this :(")
     else
         -- d("Withdrawing from slot ID " .. wait_slot_id)
         TransferFromGuildBank(wait_slot_id)
@@ -193,7 +196,8 @@ function NextDeposit()
     deposit_slot_id = deposit_slots[ds_index]
 
     if deposit_slot_id == nil then
-        d("Found a nil slot id - this is a bug, tell snare if you see this :(")
+        d("Found a nil deposit slot id - this is a bug, tell snare if you see this :(")
+        d("Deposit slot index is " .. ds_index)
     else
         -- d("Depositing backpack slot ID " .. deposit_slot_id)
         TransferToGuildBank(BAG_BACKPACK, deposit_slot_id)
@@ -306,8 +310,6 @@ function FindItemInBag(itemId, bagId)
 end
 
 function FatStacks.OnAddOnLoaded(eventCode, addOnName)
-    d("loading " .. eventCode .. " " .. addOnName)
-
     -- Register for guild bank open and close events
     EVENT_MANAGER:RegisterForEvent(FatStacks.name, EVENT_OPEN_GUILD_BANK, OnOpenGuildBank)
     EVENT_MANAGER:RegisterForEvent(FatStacks.name, EVENT_CLOSE_GUILD_BANK, OnCloseGuildBank)
