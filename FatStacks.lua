@@ -1,30 +1,49 @@
-FatStacks = {}
-FatStacks.name = "FatStacks"
+SN_FS = {}
+local SN_FS = SN_FS
+SN_FS.name = "FatStacks"
 
-data = {}
-ids = {}
-id_index = 1
+-- file-scoped locals
+local data = {}
+local ids = {}
+local id_index = 1
 
-withdraw_slots = {}
-ws_index = 1
-wait_slot_id = nil
+local withdraw_slots = {}
+local ws_index = 1
+local wait_slot_id = nil
 
-deposit_slots = {}
-ds_index = 1
+local deposit_slots = {}
+local deposit_slot_id = 0
+local ds_index = 1
 
-gb_open = false
+local gb_open = false
 
-function OnOpenGuildBank()
+-- local instances of globals
+local d                             = d
+local table                         = table
+local pairs                         = pairs
+local ipairs                        = ipairs
+
+local BAG_BACKPACK                  = BAG_BACKPACK
+local BAG_GUILDBANK                 = BAG_GUILDBANK
+
+local EVENT_GUILD_BANK_ITEM_REMOVED = EVENT_GUILD_BANK_ITEM_REMOVED
+local EVENT_GUILD_BANK_ITEM_ADDED   = EVENT_GUILD_BANK_ITEM_ADDED
+local EVENT_OPEN_GUILD_BANK         = EVENT_OPEN_GUILD_BANK
+local EVENT_CLOSE_GUILD_BANK        = EVENT_CLOSE_GUILD_BANK
+local EVENT_MANAGER                 = EVENT_MANAGER
+
+
+function SN_FS.OnOpenGuildBank()
     -- d("Opening guild bank")
     gb_open = true
 end
 
-function OnCloseGuildBank()
+function SN_FS.OnCloseGuildBank()
     -- d("Closing guild bank")
     gb_open = false
 end
 
-function Main(arg)
+function SN_FS.Main(arg)
     if arg == "" or arg == "help" then
         d("----- FatStacks help -----")
         d("/fs - this help")
@@ -34,49 +53,47 @@ function Main(arg)
         d("/fs restack - restack the guild bank")
         d("/fs reset - reset FatStacks (use this if you get an error or if FS hangs mid-restack)")
     elseif arg == "restack" then
-        RestackGuildBank()
+        SN_FS.RestackGuildBank()
     elseif arg == "reset" then
         d("Resetting")
-        EVENT_MANAGER:UnregisterForEvent(FatStacks.name, EVENT_GUILD_BANK_ITEM_REMOVED, OnGuildBankItemRemoved)
-        EVENT_MANAGER:UnregisterForEvent(FatStacks.name, EVENT_GUILD_BANK_ITEM_ADDED, OnGuildBankItemAdded)
+        EVENT_MANAGER:UnregisterForEvent(SN_FS.name, EVENT_GUILD_BANK_ITEM_REMOVED, SN_FS.OnGuildBankItemRemoved)
+        EVENT_MANAGER:UnregisterForEvent(SN_FS.name, EVENT_GUILD_BANK_ITEM_ADDED,   SN_FS.OnGuildBankItemAdded)
         data = {}
     elseif arg == "info" then
-        InspectGuildBank()
+        SN_FS.InspectGuildBank()
     else
         d("[FatStacks] No such command: " .. arg)
     end
 end
 
-function OnGuildBankItemRemoved(bagId, slotId, isNewItem, itemSoundCategory, updateReason)
+function SN_FS.OnGuildBankItemRemoved(bagId, slotId, isNewItem, itemSoundCategory, updateReason)
     local slots
 
     -- If this is the ID we were waiting for
     if wait_slot_id == slotId then
         if ws_index <= #withdraw_slots then
             -- Haven't finished withdrawing all the slots for this item yet
-            NextWithdrawal()
+            SN_FS.NextWithdrawal()
         else
             -- Finished withdrawing all the slots for this item, find the item slot(s) in backpack
-            slots = FindItemInBag(ids[id_index], BAG_BACKPACK)
+            slots = SN_FS.FindItemInBag(ids[id_index], BAG_BACKPACK)
 
             -- Stack the items we found
-            deposit_slots = StackItems(BAG_BACKPACK, slots)
+            deposit_slots = SN_FS.StackItems(BAG_BACKPACK, slots)
 
             -- Deposit the first stack in the GB
             ds_index = 1
-            NextDeposit()
+            SN_FS.NextDeposit()
 
             -- Wait for notification to call OnGuildBankItemAdded() before depositing the next one
         end
     end
 end
 
-function OnGuildBankItemAdded(bagId, slotId, isNewItem, itemSoundCategory, updateReason)
-    local found
-
+function SN_FS.OnGuildBankItemAdded(bagId, slotId, isNewItem, itemSoundCategory, updateReason)
     if ds_index <= #deposit_slots then
         -- Haven't finished depositing all the slots for this item yet
-        NextDeposit()
+        SN_FS.NextDeposit()
     else
         -- Finished depositing all the slots for this item
         -- Increment the index into the IDs array
@@ -84,17 +101,21 @@ function OnGuildBankItemAdded(bagId, slotId, isNewItem, itemSoundCategory, updat
 
         -- Do the next restack
         if id_index <= #ids then
-            NextRestack()
+            SN_FS.NextRestack()
         else
             d("Finished restacking guild bank")
-            EVENT_MANAGER:UnregisterForEvent(FatStacks.name, EVENT_GUILD_BANK_ITEM_REMOVED, OnGuildBankItemRemoved)
-            EVENT_MANAGER:UnregisterForEvent(FatStacks.name, EVENT_GUILD_BANK_ITEM_ADDED, OnGuildBankItemAdded)
+            EVENT_MANAGER:UnregisterForEvent(SN_FS.name, EVENT_GUILD_BANK_ITEM_REMOVED,  SN_FS.OnGuildBankItemRemoved)
+            EVENT_MANAGER:UnregisterForEvent(SN_FS.name, EVENT_GUILD_BANK_ITEM_ADDED,    SN_FS.OnGuildBankItemAdded)
         end
     end
 end
 
-function StackItems(bagId, slotIds)
-    local id
+function SN_FS.StackItems(bagId, slotIds)
+    local move
+    local done = false
+    local targetIndex = 1
+    local sourceIndex = 0
+    local target, stack, maxStack, room, slotId
 
     -- Make sure they're all the same item type
     local id = nil
@@ -107,9 +128,7 @@ function StackItems(bagId, slotIds)
     end
 
     -- Stack
-    local done = false
-    local targetIndex = 1
-    local sourceIndex = #slotIds
+    sourceIndex = #slotIds
     -- d("targetIndex: " .. targetIndex .. " sourceIndex: " .. sourceIndex)
     while targetIndex < sourceIndex do
         target = slotIds[targetIndex]
@@ -121,7 +140,7 @@ function StackItems(bagId, slotIds)
 
         -- While there's still room
         while room > 0 and targetIndex < sourceIndex do
-            source = slotIds[sourceIndex]
+            local source = slotIds[sourceIndex]
 
             -- Calculate how many to move
             stack, maxStack = GetSlotStackSize(bagId, source)
@@ -142,7 +161,7 @@ function StackItems(bagId, slotIds)
             -- Move it
             -- d("moving " .. move .. " from slot " .. source .. " to " .. target .. " - room: " .. room)
             ClearCursor()
-            res = CallSecureProtected("PickupInventoryItem", bagId, source, move)
+            local res = CallSecureProtected("PickupInventoryItem", bagId, source, move)
             if (res) then
                 res = CallSecureProtected("PlaceInInventory", bagId, target)
             end
@@ -155,7 +174,7 @@ function StackItems(bagId, slotIds)
     end
 
     -- Work out which slots still have items
-    newSlotIds = {}
+    local newSlotIds = {}
     for i=1,sourceIndex,1 do
         table.insert(newSlotIds, slotIds[i])
     end
@@ -163,9 +182,9 @@ function StackItems(bagId, slotIds)
     return newSlotIds
 end
 
-function NextRestack()
-    id = ids[id_index]
-    v = data[id]
+function SN_FS.NextRestack()
+    local id = ids[id_index]
+    local v = data[id]
     -- d("restacking id " .. id)
 
     -- Set the global with the slot IDs we're withdrawing
@@ -174,12 +193,12 @@ function NextRestack()
 
     -- Withdraw the first instance of this item in the GB
     d("Restacking " .. v["name"] .. " (" .. id .. ")")
-    NextWithdrawal()
+    SN_FS.NextWithdrawal()
 
     -- Now we wait for a OnGuildBankItemRemoved() callback to tell us that the withdrawal has finished
 end
 
-function NextWithdrawal()
+function SN_FS.NextWithdrawal()
     wait_slot_id = withdraw_slots[ws_index]
 
     if wait_slot_id == nil then
@@ -192,7 +211,7 @@ function NextWithdrawal()
     ws_index = ws_index + 1
 end
 
-function NextDeposit()
+function SN_FS.NextDeposit()
     deposit_slot_id = deposit_slots[ds_index]
 
     if deposit_slot_id == nil then
@@ -206,28 +225,28 @@ function NextDeposit()
     ds_index = ds_index + 1
 end
 
-function RestackGuildBank()
+function SN_FS.RestackGuildBank()
     if not gb_open then
         d("Guild bank is not open")
         return
     end
 
     -- Inspect the items in the GB
-    data, ids = InspectGuildBank()
+    data, ids = SN_FS.InspectGuildBank()
 
     -- Start restacking
     id_index = 1
     if #ids > 0 then
         -- Register for item notifications
-        EVENT_MANAGER:RegisterForEvent(FatStacks.name, EVENT_GUILD_BANK_ITEM_REMOVED, OnGuildBankItemRemoved)
-        EVENT_MANAGER:RegisterForEvent(FatStacks.name, EVENT_GUILD_BANK_ITEM_ADDED, OnGuildBankItemAdded)
+        EVENT_MANAGER:RegisterForEvent(SN_FS.name, EVENT_GUILD_BANK_ITEM_REMOVED,   SN_FS.OnGuildBankItemRemoved)
+        EVENT_MANAGER:RegisterForEvent(SN_FS.name, EVENT_GUILD_BANK_ITEM_ADDED,     SN_FS.OnGuildBankItemAdded)
 
         -- Do the first restack
-        NextRestack()
+        SN_FS.NextRestack()
     end
 end
 
-function InspectGuildBank()
+function SN_FS.InspectGuildBank()
     local i = nil
     local count = 0
     local data = {}
@@ -235,13 +254,14 @@ function InspectGuildBank()
     local data_count = 0
     local slot_count = 0
     local name, maxStack, stack
+    local v = {}
 
     if not gb_open then
         d("Guild bank is not open")
         return data, restack
     end
 
-    icon, slots = GetBagInfo(BAG_GUILDBANK)
+    local icon, slots = GetBagInfo(BAG_GUILDBANK)
 
     -- Iterate through slots in GB
     while(GetNextGuildBankSlotId(i)) do
@@ -251,8 +271,8 @@ function InspectGuildBank()
 
         -- Get info about what's in that slot
         name = GetItemName(BAG_GUILDBANK, i)
-        id = GetItemInstanceId(BAG_GUILDBANK, i)
-        stack, maxStack = GetSlotStackSize(BAG_GUILDBANK, i)
+        local id = GetItemInstanceId(BAG_GUILDBANK, i)
+        local stack, maxStack = GetSlotStackSize(BAG_GUILDBANK, i)
 
         -- Initialise a new entry if necessary
         if data[id] == nil then
@@ -293,7 +313,7 @@ function InspectGuildBank()
     return data, restack
 end
 
-function FindItemInBag(itemId, bagId)
+function SN_FS.FindItemInBag(itemId, bagId)
     local icon, slots = GetBagInfo(bagId)
     local found = {}
 
@@ -309,17 +329,17 @@ function FindItemInBag(itemId, bagId)
     return found
 end
 
-function FatStacks.OnAddOnLoaded(eventCode, addOnName)
-    -- Register for guild bank open and close events
-    EVENT_MANAGER:RegisterForEvent(FatStacks.name, EVENT_OPEN_GUILD_BANK, OnOpenGuildBank)
-    EVENT_MANAGER:RegisterForEvent(FatStacks.name, EVENT_CLOSE_GUILD_BANK, OnCloseGuildBank)
-
+function SN_FS.OnAddOnLoaded(eventCode, addOnName)
     -- Only initialize our own addon
-    if (FatStacks.name ~= FatStacks.name) then return end
+    if (addOnName ~= SN_FS.name) then return end
+
+    -- Register for guild bank open and close events
+    EVENT_MANAGER:RegisterForEvent(SN_FS.name, EVENT_OPEN_GUILD_BANK,    SN_FS.OnOpenGuildBank)
+    EVENT_MANAGER:RegisterForEvent(SN_FS.name, EVENT_CLOSE_GUILD_BANK,   SN_FS.OnCloseGuildBank)
 
     -- Register slash command
-    SLASH_COMMANDS["/fs"] = Main
+    SLASH_COMMANDS["/fs"] = SN_FS.Main
 end
 
 
-EVENT_MANAGER:RegisterForEvent(FatStacks.name, EVENT_ADD_ON_LOADED, FatStacks.OnAddOnLoaded)
+EVENT_MANAGER:RegisterForEvent(SN_FS.name, EVENT_ADD_ON_LOADED, SN_FS.OnAddOnLoaded)
