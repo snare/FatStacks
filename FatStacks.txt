@@ -2,3 +2,7 @@
 ## APIVersion: 100003
 
 FatStacks.lua
+FatStacks_Config.lua
+
+lib/LibAddonMenu-1.0.lua
+lib/LibStub.lua
