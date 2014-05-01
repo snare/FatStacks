@@ -29,28 +29,20 @@ end
 -------------------------------------------------------------------------------
 function SN_FS.InitAddOnMenu()
     LAM:AddHeader(addonMenu, "SN_FS_Header", "FatStacks " .. SN_FS.version)
-    LAM:AddDescription(addonMenu, "SN_FS_SettingsDescription", "Configuration options for FatStacks.", nil)
-    LAM:AddCheckbox(addonMenu,
-        "SN_FS_FatStacks_Enabled",
-        "Enable FatStacks",
-        "Enable or disable FatStacks globally.",
-        function () return SN_FS.GetConfigValue("enabled") end,
-        function (value) SN_FS.SetConfigValue("enabled", value) end
-    )
     LAM:AddCheckbox(addonMenu,
         "SN_FS_FatStacks_Debug",
-        "Enable debug logging",
-        "Enable or disable debug logging.",
+        "Debug Logging",
+        "Verbose debug logging while re-stacking.",
         function () return SN_FS.GetConfigValue("debug") end,
         function (value) SN_FS.SetConfigValue("debug", value) end
     )
-    LAM:AddCheckbox(addonMenu,
-        "SN_FS_FatStacks_AutoStack",
-        "Enable auto-stacking",
-        "Enable automatically re-stacking an item when after it is deposited into the guild bank.",
-        function () return SN_FS.GetConfigValue("stack_on_insert") end,
-        function (value) SN_FS.SetConfigValue("stack_on_insert", value) end
-    )
+    -- LAM:AddCheckbox(addonMenu,
+    --     "SN_FS_FatStacks_AutoStack",
+    --     "Automatic Stacking on Deposit",
+    --     "Automatically re-stack an item after it is deposited into the guild bank.",
+    --     function () return SN_FS.GetConfigValue("stack_on_insert") end,
+    --     function (value) SN_FS.SetConfigValue("stack_on_insert", value) end
+    -- )
 end
 
 -------------------------------------------------------------------------------

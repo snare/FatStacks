@@ -19,7 +19,7 @@ SN_FS.configNamespace               = 'SN_FS'
 SN_FS.configDefaults = {
     ["configVersion"]               = SN_FS.configVersion,
     ["debug"]                       = false,
-    ["enabled"]                     = true
+    ["stack_on_insert"]             = false
 }
 
 -------------------------------------------------------------------------------
@@ -414,10 +414,10 @@ function SN_FS.InspectGuildBank()
 
     -- Report on poorly stacked items
     if #restack > 0 then
-        log("There are " .. #restack .. " items taking up too many slots:")
+        log("There are " .. #restack .. " items taking up too many slots")
         for i,id in ipairs(restack) do
             v = data[id]
-            log(v["name"] .. " - " .. v["count"] .. " using " .. v["slots"] .. " slots instead of " .. v["req"])
+            dbg(v["name"] .. " - " .. v["count"] .. " using " .. v["slots"] .. " slots instead of " .. v["req"])
         end
     else
         log("Guild bank is stacked OK")
