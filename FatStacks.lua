@@ -70,29 +70,25 @@ local EVENT_MANAGER                 = EVENT_MANAGER
 -- Main function called by the /fs command
 -------------------------------------------------------------------------------
 function SN_FS.Main(arg)
-    if SN_FS.config["enabled"] then
-        if arg == "" or arg == "help" then
-            d("----- FatStacks help -----")
-            d("/fs - this help")
-            d("/fs info - just get info about the state of the guild bank")
-            d("/fs restack - restack the guild bank")
-            d("/fs reset - reset FatStacks (use this if you get an error or if FS hangs mid-restack)")
-        elseif arg == "restack" then
-            SN_FS.RestackGuildBank()
-        elseif arg == "reset" then
-            d("[FatStacks] Resetting")
-            EVENT_MANAGER:UnregisterForEvent(SN_FS.name, EVENT_GUILD_BANK_ITEM_REMOVED, SN_FS.OnGuildBankItemRemoved)
-            EVENT_MANAGER:UnregisterForEvent(SN_FS.name, EVENT_GUILD_BANK_ITEM_ADDED,   SN_FS.OnGuildBankItemAdded)
-            data = {}
-        elseif arg == "info" then
-            SN_FS.InspectGuildBank()
-        elseif arg == "debug" then
-            SN_FS.ToggleDebugLogging()
-        else
-            d("[FatStacks] No such command: " .. arg)
-        end
+    if arg == "" or arg == "help" then
+        d("----- FatStacks help -----")
+        d("/fs - this help")
+        d("/fs info - just get info about the state of the guild bank")
+        d("/fs restack - restack the guild bank")
+        d("/fs reset - reset FatStacks (use this if you get an error or if FS hangs mid-restack)")
+    elseif arg == "restack" then
+        SN_FS.RestackGuildBank()
+    elseif arg == "reset" then
+        d("[FatStacks] Resetting")
+        EVENT_MANAGER:UnregisterForEvent(SN_FS.name, EVENT_GUILD_BANK_ITEM_REMOVED, SN_FS.OnGuildBankItemRemoved)
+        EVENT_MANAGER:UnregisterForEvent(SN_FS.name, EVENT_GUILD_BANK_ITEM_ADDED,   SN_FS.OnGuildBankItemAdded)
+        data = {}
+    elseif arg == "info" then
+        SN_FS.InspectGuildBank()
+    elseif arg == "debug" then
+        SN_FS.ToggleDebugLogging()
     else
-        d("FatStacks is disabled")
+        d("[FatStacks] No such command: " .. arg)
     end
 end
 
