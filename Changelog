@@ -1,0 +1,27 @@
+0.1.4
+-----
+
+- Fixed "FatStacks is disabled" bug introduced in 0.1.3
+
+0.1.3
+-----
+
+- Minimised chat spam
+- Added a settings menu item where the user can enable/disable debug logging
+- Doesn't withdraw full stacks when re-stacking 
+
+
+0.1.2
+-----
+
+- Cleaned up global usage
+
+0.1.1
+-----
+
+- I can't remember
+
+0.1.0
+-----
+
+- Initial release
