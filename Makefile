@@ -9,4 +9,5 @@ zip:
 	rm -f $(TMP_DIR)/$(TMP_ZIP)
 	cp -R . $(TMP_DIR)/$(NAME)
 	rm -rf $(TMP_DIR)/$(NAME)/.git
+	rm -f $(TMP_DIR)/$(NAME)/Makefile
 	cd $(TMP_DIR) && zip -r $(TMP_ZIP) $(NAME)
