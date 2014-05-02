@@ -1,3 +1,8 @@
+0.1.5
+-----
+
+- Added a delay before the first deposit. Not ideal but might address the getting stuck issue.
+
 0.1.4
 -----
 
