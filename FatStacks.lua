@@ -158,7 +158,7 @@ function SN_FS.OnGuildBankItemRemoved(bagId, slotId, isNewItem, itemSoundCategor
 
             -- Deposit the first stack in the GB
             ds_index = 1
-            SN_FS.NextDeposit()
+            return zo_callLater(SN_FS.NextDeposit, 1000)
 
             -- Wait for notification to call OnGuildBankItemAdded() before depositing the next one
         end
