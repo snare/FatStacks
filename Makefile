@@ -1,10 +1,12 @@
-TMP_DIR=/tmp/FatStacks
-TMP_ZIP=/tmp/FatStacks.zip
+NAME=FatStacks
+TMP_DIR=/tmp
+TMP_ZIP=FatStacks.zip
 
 all: zip
 
 zip: 
-	rm -rf $(TMP_DIR)
-	cp -R . $(TMP_DIR)
-	rm -rf $(TMP_DIR)/.git
-	zip -r $(TMP_ZIP) $(TMP_DIR)
+	rm -rf $(TMP_DIR)/$(NAME)
+	rm -f $(TMP_DIR)/$(TMP_ZIP)
+	cp -R . $(TMP_DIR)/$(NAME)
+	rm -rf $(TMP_DIR)/$(NAME)/.git
+	cd $(TMP_DIR) && zip -r $(TMP_ZIP) $(NAME)
