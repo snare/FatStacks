@@ -41,6 +41,9 @@ local deposit_slots                 = {}
 local deposit_slot_id               = 0
 local ds_index                      = 1
 
+-- Slots to skip
+local skip_backpack_slots           = {}
+
 -- Guild bank is open flag
 local gb_open                       = false
 
@@ -332,6 +335,9 @@ function SN_FS.RestackGuildBank()
     -- Inspect the items in the GB
     data, ids = SN_FS.InspectGuildBank()
 
+    -- Get a snapshot of items in the backpack (so we don't deposit them)
+    skip_backpack_slots = SN_FS.InspectBackpack()
+
     -- Start restacking
     id_index = 1
     if #ids > 0 then
@@ -344,6 +350,23 @@ function SN_FS.RestackGuildBank()
         -- Do the first restack
         SN_FS.NextRestack()
     end
+end
+
+-------------------------------------------------------------------------------
+-- InspectBackpack()
+-- Get a snapshot of items in the backpack
+-------------------------------------------------------------------------------
+function SN_FS.InspectBackpack()
+    local icon, slots = GetBagInfo(BAG_BACKPACK)
+    local skip = {}
+
+    for slot=0,slots,1 do
+        if GetItemInstanceId(BAG_BACKPACK, slot) then
+            table.insert(skip, slot)
+        end
+    end
+
+    return skip
 end
 
 -------------------------------------------------------------------------------
@@ -423,6 +446,21 @@ function SN_FS.InspectGuildBank()
 end
 
 -------------------------------------------------------------------------------
+-- ShouldDepositBackpackSlot()
+-- Check if the given slot is in the list of slots to skip (items that were
+-- already in the user's backpack).
+-------------------------------------------------------------------------------
+function SN_FS.ShouldDepositBackpackSlot(slotId)
+    for i,bSlotId in ipairs(skip_backpack_slots) do
+        if slotId == bSlotId then
+            return false
+        end
+    end
+
+    return true
+end
+
+-------------------------------------------------------------------------------
 -- FindItemInBag()
 -- Locates all instances of a specified item ID in the specified bag
 -------------------------------------------------------------------------------
@@ -431,7 +469,7 @@ function SN_FS.FindItemInBag(itemId, bagId)
     local found = {}
 
     for slot=0,slots,1 do
-        if itemId == GetItemInstanceId(bagId, slot) then
+        if itemId == GetItemInstanceId(bagId, slot) and SN_FS.ShouldDepositBackpackSlot(slot) then
             table.insert(found, slot)
         end
     end
