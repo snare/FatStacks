@@ -1,6 +1,7 @@
 0.1.6
 -----
 
+- Items already in the backpack are no longer deposited into the guild bank
 - Fixed a bug stopping FatStacks from being loaded properly when no other addons are loaded
 
 0.1.5
