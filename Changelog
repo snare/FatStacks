@@ -1,3 +1,8 @@
+0.1.6
+-----
+
+- Fixed a bug stopping FatStacks from being loaded properly when no other addons are loaded
+
 0.1.5
 -----
 

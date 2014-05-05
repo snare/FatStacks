@@ -1,11 +1,11 @@
 ## Title: FatStacks
 ## APIVersion: 100003
 ## Author: snare
-## Version: 0.1.3
+## Version: 0.1.6
 ## SavedVariables: SN_FS_SavedVariables
 
-lib/LibAddonMenu-1.0.lua
 lib/LibStub.lua
+lib/LibAddonMenu-1.0.lua
 
 FatStacks.lua
 FatStacks_Config.lua
